@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import "./EventCard.css";
-import { getEventStatus } from "../eventUtils";
+import { getEventStatus , getTimeRemaining } from "../eventUtils";
 import { Link } from "react-router-dom";
+
 function getStatusLabel(status) {
 
     if (status === "LIVE NOW") {
@@ -31,6 +32,7 @@ function EventCard({ event }) {
 
     const status = getEventStatus(event, now);
     const statusLabel = getStatusLabel(status);
+    const remaining = getTimeRemaining(event, now);
     const statusClass = status.toLocaleLowerCase().replace(" ", "-");
 
     return (
@@ -42,6 +44,12 @@ function EventCard({ event }) {
             <h2>{event.name}</h2>
 
             <p className={`status ${statusClass}`}>Status: {statusLabel}</p>
+            {status ==="UPCOMING"&& remaining && (
+                <p className="countdown">
+                    Starts in: {remaining.days}d {remaining.hours}h{" "}
+                    {remaining.minutes}m {remaining.seconds}s
+                </p>
+            )}
 
             <p>Date: {event.date}</p>
             <p>Time: {event.startTime} - {event.endTime}</p>

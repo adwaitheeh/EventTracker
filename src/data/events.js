@@ -16,7 +16,7 @@ const events =[
         id:2,
         name:"Sargam",
         poster: "https://via.placeholder.com/600x350",
-        date:"2025-10-12",
+        date:"2027-10-12",
         startTime:"19:10",
         endTime:"20:30",
         venue:"open air",
