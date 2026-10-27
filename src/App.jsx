@@ -1,12 +1,24 @@
+import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import events from "./data/events";
 import EventCard from "./components/EventCard";
-import { useEffect, useState } from "react";
 import { getEventStatus } from "./eventUtils";
 import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import EventDetails from "./EventDetails";
+import EventDetails from "./EventDetails";  
+import AdminPortal from "./AdminPortal";
 function App() {
+  const [eventList, setEventList] = useState(events);
   const [now, setNow] = useState(new Date());
+
+  const handleAdminStatusChange = (eventId, newStatus) => {
+    setEventList((previousEvents) =>
+      previousEvents.map((event) =>
+        event.id === eventId
+          ? { ...event, adminStatus: newStatus }
+          : event
+      )
+    );
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -15,9 +27,9 @@ function App() {
 
     return () => clearInterval(timer);
   }, []);
-  const liveEvents = events.filter((event) => getEventStatus(event, now) === "LIVE NOW");
-  const startingSoonEvents = events.filter((event) => getEventStatus(event, now) === "STARTING SOON");
-  const upcomingEvents = events.filter((event) => getEventStatus(event, now) === "UPCOMING");
+  const liveEvents = eventList.filter((event) => getEventStatus(event, now) === "LIVE NOW");
+  const startingSoonEvents = eventList.filter((event) => getEventStatus(event, now) === "STARTING SOON");
+  const upcomingEvents = eventList.filter((event) => getEventStatus(event, now) === "UPCOMING");
 
   return (
     <BrowserRouter>
@@ -37,7 +49,7 @@ function App() {
                 ) : (
                   <div className="event-grid">
                     {liveEvents.map((event) => (
-                      <EventCard key={event.id} event={event} />
+                      <EventCard key={event.id} event={event} onAdminStatusChange={handleAdminStatusChange} />
                     ))}
                   </div>
                 )}
@@ -52,7 +64,7 @@ function App() {
                 ) : (
                   <div className="event-grid">
                     {startingSoonEvents.map((event) => (
-                      <EventCard key={event.id} event={event} />
+                      <EventCard key={event.id} event={event} onAdminStatusChange={handleAdminStatusChange} />
                     ))}
                   </div>
                 )}
@@ -67,7 +79,7 @@ function App() {
                 ) : (
                   <div className="event-grid">
                     {upcomingEvents.map((event) => (
-                      <EventCard key={event.id} event={event} />
+                      <EventCard key={event.id} event={event} onAdminStatusChange={handleAdminStatusChange} />
                     ))}
                   </div>
                 )}
