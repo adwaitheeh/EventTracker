@@ -1,18 +1,58 @@
 import { useParams } from "react-router-dom";
-import events from "./data/events";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 function EventDetails() {
     const { id } = useParams();
-    const event = events.find((event) => String(event.id) === id);
+    const [event, setEvent] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        const loadEvent = async () => {
+            try {
+                const response = await fetch(`http://localhost:5000/api/events/${id}`);
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch events");
+                }
+
+                const data = await response.json();
+                setEvent(data);
+                
+            } catch (error) {
+                console.error("Could not load event:", error);
+                setError(error.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadEvent();
+    }, [id]);
+
+
+    if (loading) {
+        return <p>Loading event details...</p>;
+    }
+
+    if (error) {
+        return (
+            <div className="admin-page">
+                <p className="error-state">{error}</p>
+                <Link to="/">← Back to events</Link>
+            </div>
+        );
+    }
+
     if (!event) {
-        return <h2>Event not found</h2>
+        return <p>Event not found.</p>;
     }
 
     return (
         <div>
-            
-<Link to="/">← Back to all events</Link>
+
+            <Link to="/">← Back to all events</Link>
 
             <h1>{event.name}</h1>
 

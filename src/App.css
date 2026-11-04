@@ -27,3 +27,131 @@ section{
   text-align: center;
   margin: 30px 15px;
  }
+ 
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
+}
+
+.site-header h1 {
+  text-align: left;
+  margin: 0;
+}
+
+.admin-link {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background-color: #263b32;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.admin-link:hover {
+  background-color: #3b5749;
+  transform: translateY(-2px);
+}
+.admin-page{
+  max-width: 850px;
+  margin: 30px auto;
+  padding: 24px;
+}
+.admin-page > a{
+  display: inline-block;
+  margin: bottom 20px ;
+    color: #263b32;
+text-decoration: none;
+font-weight: 600;
+}
+.admin-page >a:hover{
+  text-decoration: underline;
+}
+.admin-page >h1{
+text-align: left;
+margin: 10px 0;
+}
+.admin-page >p{
+  color: #666;
+  margin-bottom: 28px;
+}
+.admin-event {
+  margin: 18px 0;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+}
+
+.admin-event h2 {
+  margin-top: 0;
+  color: #263b32;
+}
+
+.admin-event label {
+  display: block;
+  margin: 16px 0 8px;
+  font-weight: 600;
+}
+
+.admin-event select {
+  width: 100%;
+  max-width: 320px;
+  padding: 11px 12px;
+  border: 1px solid #cbd5d0;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+/* Mobile-friendly Admin Portal */
+@media (max-width: 600px) {
+  .admin-page {
+    margin: 12px auto;
+    padding: 16px;
+  }
+
+  .admin-page > h1 {
+    font-size: 1.8rem;
+  }
+
+  .admin-event {
+    padding: 16px;
+  }
+
+  .admin-event h2 {
+    font-size: 1.2rem;
+  }
+
+  .admin-event select {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .site-header {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .site-header h1 {
+    font-size: 1.7rem;
+  }
+}
+
+/* API error message */
+.error-state {
+  color: #b42318;
+  background: #fef3f2;
+  border: 1px solid #fecdca;
+  padding: 18px;
+  border-radius: 10px;
+  text-align: center;
+  margin: 12px 20px;
+}
