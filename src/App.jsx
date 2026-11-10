@@ -24,7 +24,7 @@ function ProtectedAdmin({ children }) {
   useEffect(() => {
     let active = true;
 
-    fetch("http://localhost:5000/api/admin/me", {
+    fetch("/api/admin/me", {
       credentials: "include",
     })
       .then((response) => {
@@ -91,7 +91,7 @@ function App() {
   const handleAdminStatusChange = async (eventId, newStatus) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/events/${eventId}/status`,
+        `/api/events/${eventId}/status`,
         {
           method: "PATCH",
           credentials: "include",
@@ -139,7 +139,7 @@ function App() {
         setError("");
 
         const response = await fetch(
-          "http://localhost:5000/api/events"
+          "/api/events"
         );
 
         if (!response.ok) {
@@ -179,12 +179,12 @@ function App() {
         <Route
           path="/"
           element={
-            <div>
+            <div className="public-site">
               <div className="site-header">
                 <h1>Campus Event Live Tracker</h1>
 
                 <Link to="/admin" className="admin-link">
-                  Admin Portal →
+                  Admin Portal 
                 </Link>
               </div>
 

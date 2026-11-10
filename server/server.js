@@ -1,27 +1,60 @@
+
 import express from "express";
-import cors from "cors";
-import events from "../src/data/events.js";
 import "dotenv/config";
 import mongoose from "mongoose";
-import Event from "./models/Event.js";
 import session from "express-session";
 import MongoStore from "connect-mongo";
 import bcrypt from "bcryptjs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import events from "../src/data/events.js";
+import Event from "./models/Event.js";
+
+// ----------------------------------
+// APP CONFIGURATION
+// ----------------------------------
 
 const app = express();
-const PORT = 5000;
 
+const PORT = Number(process.env.PORT) || 5000;
+const HOST = "0.0.0.0";
 
-const mongoClientPromise = (async () => {
-  if (!process.env.MONGO_URI) {
-    throw new Error("MONGO_URI is missing from .env");
-  }
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-  await mongoose.connect(process.env.MONGO_URI);
+const projectRoot = path.resolve(__dirname, "..");
+const distPath = path.join(projectRoot, "dist");
 
-  return mongoose.connection.getClient();
-})();
+// Render runs behind a reverse proxy.
+// Trust the first proxy so secure cookies work correctly.
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 
+// ----------------------------------
+// ENVIRONMENT VALIDATION
+// ----------------------------------
+
+if (!process.env.MONGO_URI) {
+  throw new Error("MONGO_URI is missing");
+}
+
+if (!process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET is missing");
+}
+
+// ----------------------------------
+// MONGODB CONNECTION
+// ----------------------------------
+
+const mongoClientPromise = mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => mongoose.connection.getClient());
+
+// ----------------------------------
+// INITIAL EVENT SEEDING
+// ----------------------------------
 
 async function seedEvents() {
   for (const event of events) {
@@ -32,14 +65,19 @@ async function seedEvents() {
     );
   }
 
-  console.log("✅ Initial events added to MongoDB");
+  console.log("✅ Initial events checked");
 }
 
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true
-}));
+// ----------------------------------
+// MIDDLEWARE
+// ----------------------------------
+
 app.use(express.json());
+
+// Serve the React production build.
+app.use(express.static(distPath));
+
+// Session configuration
 app.use(
   session({
     name: "campus.sid",
@@ -52,6 +90,7 @@ app.use(
       collectionName: "sessions",
       ttl: 8 * 60 * 60,
     }),
+
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -61,6 +100,22 @@ app.use(
   })
 );
 
+// ----------------------------------
+// HEALTH CHECK
+// ----------------------------------
+
+app.get("/api/health", (req, res) => {
+  const connected = mongoose.connection.readyState === 1;
+
+  res.status(connected ? 200 : 503).json({
+    status: connected ? "ok" : "connecting",
+    database: connected ? "connected" : "unavailable",
+  });
+});
+
+// ----------------------------------
+// ADMIN LOGIN
+// ----------------------------------
 
 app.post("/api/admin/login", async (req, res) => {
   const { username, password } = req.body;
@@ -87,6 +142,7 @@ app.post("/api/admin/login", async (req, res) => {
     }
 
     const usernameValid = username === savedUsername;
+
     const passwordValid = await bcrypt.compare(
       password,
       savedHash
@@ -101,6 +157,7 @@ app.post("/api/admin/login", async (req, res) => {
     req.session.regenerate((error) => {
       if (error) {
         console.error("Session creation failed:", error);
+
         return res.status(500).json({
           error: "Could not create login session",
         });
@@ -111,6 +168,7 @@ app.post("/api/admin/login", async (req, res) => {
       req.session.save((saveError) => {
         if (saveError) {
           console.error("Session save failed:", saveError);
+
           return res.status(500).json({
             error: "Could not save login session",
           });
@@ -130,6 +188,9 @@ app.post("/api/admin/login", async (req, res) => {
   }
 });
 
+// ----------------------------------
+// ADMIN AUTHENTICATION MIDDLEWARE
+// ----------------------------------
 
 function requireAdmin(req, res, next) {
   if (!req.session || req.session.admin !== true) {
@@ -141,6 +202,9 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+// ----------------------------------
+// CHECK ADMIN SESSION
+// ----------------------------------
 
 app.get("/api/admin/me", requireAdmin, (req, res) => {
   res.json({
@@ -148,6 +212,10 @@ app.get("/api/admin/me", requireAdmin, (req, res) => {
     username: process.env.ADMIN_USERNAME,
   });
 });
+
+// ----------------------------------
+// ADMIN LOGOUT
+// ----------------------------------
 
 app.post("/api/admin/logout", (req, res) => {
   req.session.destroy((error) => {
@@ -163,6 +231,7 @@ app.post("/api/admin/logout", (req, res) => {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
+      path: "/",
     });
 
     res.json({
@@ -171,7 +240,9 @@ app.post("/api/admin/logout", (req, res) => {
   });
 });
 
-
+// ----------------------------------
+// GET ALL EVENTS
+// ----------------------------------
 
 app.get("/api/events", async (req, res) => {
   try {
@@ -179,10 +250,16 @@ app.get("/api/events", async (req, res) => {
     res.json(events);
   } catch (error) {
     console.error("Error fetching events:", error);
-    res.status(500).json({ error: "Failed to fetch events" });
+
+    res.status(500).json({
+      error: "Failed to fetch events",
+    });
   }
 });
 
+// ----------------------------------
+// GET INDIVIDUAL EVENT
+// ----------------------------------
 
 app.get("/api/events/:id", async (req, res) => {
   try {
@@ -191,16 +268,24 @@ app.get("/api/events/:id", async (req, res) => {
     });
 
     if (!event) {
-      return res.status(404).json({ error: "Event not found" });
+      return res.status(404).json({
+        error: "Event not found",
+      });
     }
 
     res.json(event);
   } catch (error) {
     console.error("Error fetching event:", error);
-    res.status(500).json({ error: "Failed to fetch event" });
+
+    res.status(500).json({
+      error: "Failed to fetch event",
+    });
   }
 });
 
+// ----------------------------------
+// UPDATE EVENT STATUS (ADMIN ONLY)
+// ----------------------------------
 
 app.patch(
   "/api/events/:id/status",
@@ -208,47 +293,93 @@ app.patch(
   async (req, res) => {
     const { adminStatus } = req.body;
 
-    const allowedStatuses = ["automatic", "LIVE NOW", "ENDED"];
+    const allowedStatuses = [
+      "automatic",
+      "LIVE NOW",
+      "ENDED",
+    ];
 
     if (!allowedStatuses.includes(adminStatus)) {
-      return res.status(400).json({ error: "Invalid event status" });
+      return res.status(400).json({
+        error: "Invalid event status",
+      });
     }
 
     try {
       const updatedEvent = await Event.findOneAndUpdate(
         { id: Number(req.params.id) },
         { $set: { adminStatus } },
-        { returnDocument: "after", runValidators: true }
+        {
+          returnDocument: "after",
+          runValidators: true,
+        }
       );
 
       if (!updatedEvent) {
-        return res.status(404).json({ error: "Event not found" });
+        return res.status(404).json({
+          error: "Event not found",
+        });
       }
 
       res.json(updatedEvent);
-
     } catch (error) {
       console.error("Error updating event:", error);
-      res.status(500).json({ error: "Failed to update event" });
+
+      res.status(500).json({
+        error: "Failed to update event",
+      });
     }
   }
 );
 
+// ----------------------------------
+// REACT ROUTER FALLBACK
+// ----------------------------------
 
-const startServer = async () => {
+app.use((req, res, next) => {
+  if (req.method === "GET" && !req.path.startsWith("/api/")) {
+    return res.sendFile(
+      path.join(distPath, "index.html"),
+      (error) => {
+        if (error) next(error);
+      }
+    );
+  }
+
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({
+      error: "API endpoint not found",
+    });
+  }
+
+  next();
+});
+
+// ----------------------------------
+// START SERVER
+// ----------------------------------
+
+// Start listening immediately, then finish database initialization.
+const server = app.listen(PORT, HOST, () => {
+  console.log(`🚀 Server running on ${HOST}:${PORT}`);
+});
+
+async function initializeDatabase() {
   try {
     await mongoClientPromise;
 
     console.log("✅ Connected to MongoDB Atlas");
+
     await seedEvents();
 
-    app.listen(PORT, () => {
-      console.log(`Backend server running at http://localhost:${PORT}`);
-    });
+    console.log("✅ Database initialization complete");
   } catch (error) {
-    console.error("❌ MongoDB connection failed:", error.message);
-    process.exit(1);
-  }
-};
+    console.error("❌ MongoDB initialization failed:", error);
 
-startServer();
+    server.close(() => {
+      process.exit(1);
+    });
+  }
+}
+
+initializeDatabase();

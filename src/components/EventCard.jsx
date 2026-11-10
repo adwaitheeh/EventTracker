@@ -1,64 +1,99 @@
+
 import { useEffect, useState } from "react";
 import "./EventCard.css";
-import { getEventStatus , getTimeRemaining } from "../eventUtils";
+import { getEventStatus, getTimeRemaining } from "../eventUtils";
 import { Link } from "react-router-dom";
 
-function getStatusLabel(status) {
-
-    if (status === "LIVE NOW") {
-        return "🟢 LIVE NOW";
-    }
-    if (status === "STARTING SOON") {
-        return "🟡 STARTING SOON";
-    }
-
-    if (status === "UPCOMING") {
-        return "🔵 UPCOMING";
-    }
-
-    return "🔴 ENDED";
-}
-
 function EventCard({ event }) {
-    const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState(new Date());
 
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setNow(new Date());
-        }, 1000);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
 
-        return () => clearInterval(timer);
-    }, []);
+    return () => clearInterval(timer);
+  }, []);
 
-    const status = getEventStatus(event, now);
-    const statusLabel = getStatusLabel(status);
-    const remaining = getTimeRemaining(event, now);
-    const statusClass = status.toLocaleLowerCase().replace(" ", "-");
+  const status = getEventStatus(event, now);
+  const remaining = getTimeRemaining(event, now);
 
-    return (
-        <Link to={`/events/${event.id}`} className="event-card">
-            <img
-                src={event.poster}
-                alt={event.name}
-            />
-            <h2>{event.name}</h2>
+  const statusClass = status.toLowerCase().replace(/\s+/g, "-");
 
-            <p className={`status ${statusClass}`}>Status: {statusLabel}</p>
-            {status ==="UPCOMING"&& remaining && (
-                <p className="countdown">
-                    Starts in: {remaining.days}d {remaining.hours}h{" "}
-                    {remaining.minutes}m {remaining.seconds}s
-                </p>
-            )}
+  return (
+    <Link to={`/events/${event.id}`} className="event-card">
 
-            <p>Date: {event.date}</p>
-            <p>Time: {event.startTime} - {event.endTime}</p>
-            <p>Venue: {event.venue}</p>
-            <p>Performer: {event.performer}</p>
-            <p>Category: {event.category}</p>
-            <p>{event.description}</p>
-        </Link>
-    );
+      <div className="event-card-image">
+        <img
+          src={event.poster}
+          alt={event.name}
+          loading="lazy"
+        />
+      </div>
+
+      <div className="event-card-content">
+
+        <div className="event-card-badges">
+          <span className={`status ${statusClass}`}>
+            {status}
+          </span>
+
+          {event.category && (
+            <span className="event-category">
+              {event.category}
+            </span>
+          )}
+        </div>
+
+        <h2>{event.name}</h2>
+
+        <div className="event-card-meta">
+
+          <div className="event-card-meta-item">
+            <span>Date</span>
+            <strong>{event.date}</strong>
+          </div>
+
+          <div className="event-card-meta-item">
+            <span>Time</span>
+            <strong>
+              {event.startTime} – {event.endTime}
+            </strong>
+          </div>
+
+          <div className="event-card-meta-item">
+            <span>Venue</span>
+            <strong>{event.venue || "Not specified"}</strong>
+          </div>
+
+          <div className="event-card-meta-item">
+            <span>Performer</span>
+            <strong>{event.performer || "Not specified"}</strong>
+          </div>
+
+        </div>
+
+        {status === "UPCOMING" && remaining && (
+          <p className="countdown">
+            Starts in: {remaining.days}d {remaining.hours}h{" "}
+            {remaining.minutes}m {remaining.seconds}s
+          </p>
+        )}
+
+        {event.description && (
+          <p className="event-description">
+            {event.description}
+          </p>
+        )}
+
+        <div className="event-card-footer">
+          <span>View event details</span>
+          <span>→</span>
+        </div>
+
+      </div>
+    </Link>
+  );
 }
 
 export default EventCard;
